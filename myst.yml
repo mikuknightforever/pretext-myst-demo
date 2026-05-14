@@ -1,0 +1,10 @@
+version: 1
+
+project:
+  title: Pretext MyST Demo
+  description: A prototype for draggable figure-aware text wrapping in MyST.
+  toc:
+    - file: index.md
+
+site:
+  template: article-theme
