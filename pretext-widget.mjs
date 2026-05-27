@@ -1,25 +1,25 @@
 function render({ model, el }) {
   const text =
     model.get("text") ||
-    "This page demonstrates a Pretext-style reading mode for dynamic papers. In normal mode, the article behaves like a regular MyST page with static prose and a static figure. When Pretext mode is enabled, the figure becomes draggable and the text reflows around it. This is a prototype for page-level figure-aware layout rather than a small isolated animation.";
+    "This page demonstrates a Pretext-style reading mode for dynamic papers. In normal mode, the article behaves like a regular MyST page. When Pretext Mode is enabled, the page switches into an interactive reading surface where the figure becomes draggable and the surrounding text dynamically reflows around it. This prototype moves beyond a small localized animation and tests a broader page-level interaction model.";
 
-  const height = model.get("height") || 620;
-  const figureWidth = model.get("figureWidth") || 240;
-  const figureHeight = model.get("figureHeight") || 150;
+  const figureWidth = model.get("figureWidth") || 250;
+  const figureHeight = model.get("figureHeight") || 160;
 
-  let figureX = model.get("initialX") || 360;
+  let figureX = model.get("initialX") || 420;
   let figureY = model.get("initialY") || 220;
 
+  const figureKicker = model.get("figureKicker") || "Draggable Artifact";
   const figureTitle = model.get("figureTitle") || "Interactive Figure";
   const figureCaption =
     model.get("figureCaption") ||
-    "Drag this figure in Pretext mode. The article text will wrap around it.";
+    "Drag this figure in Pretext Mode. The text will dynamically wrap around it.";
 
-  const padding = 34;
-  const lineHeight = 30;
+  const padding = 42;
+  const lineHeight = 32;
   const wordGap = 6;
-  const obstacleGap = 18;
-  const fontSize = 18;
+  const obstacleGap = 20;
+  const fontSize = 19;
   const fontFamily =
     'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
@@ -31,105 +31,110 @@ function render({ model, el }) {
 
   const style = document.createElement("style");
   style.textContent = `
-    .pretext-page-demo {
-      width: 100%;
-      margin: 1.5rem 0 2rem;
+    .pretext-root {
       font-family: ${fontFamily};
     }
 
-    .pretext-mode-toolbar {
-      position: sticky;
-      top: 12px;
-      z-index: 50;
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-      pointer-events: none;
-    }
-
-    .pretext-toggle {
-      pointer-events: auto;
-      border: 1px solid rgba(15, 23, 42, 0.16);
-      border-radius: 999px;
-      padding: 9px 16px;
-      background: #ffffff;
-      color: #111827;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16);
-      cursor: pointer;
-      font-weight: 750;
-      font-size: 14px;
-    }
-
-    .pretext-toggle:hover {
-      background: #f8fafc;
-    }
-
-    .pretext-normal-article {
-      border: 1px solid rgba(15, 23, 42, 0.12);
-      border-radius: 22px;
-      background: #ffffff;
-      padding: 28px;
-      color: #111827;
-      box-shadow: 0 18px 55px rgba(15, 23, 42, 0.10);
-    }
-
-    .pretext-normal-article h2 {
-      margin-top: 0;
-      font-size: 26px;
-      line-height: 1.2;
-    }
-
-    .pretext-normal-article p {
-      font-size: 18px;
-      line-height: 1.75;
-      margin: 0 0 1rem;
-    }
-
-    .pretext-static-figure {
-      float: right;
-      width: ${figureWidth}px;
-      min-height: ${figureHeight}px;
-      margin: 0 0 18px 24px;
+    .pretext-inline-controller {
+      margin: 1.5rem 0;
+      padding: 18px 20px;
       border-radius: 18px;
-      background: linear-gradient(135deg, #111827, #2563eb);
-      color: white;
-      padding: 18px;
-      box-shadow: 0 18px 38px rgba(37, 99, 235, 0.22);
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      background: #f8fafc;
+      color: #111827;
+      font-family: ${fontFamily};
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
     }
 
-    .pretext-static-figure-title {
-      font-size: 24px;
-      line-height: 1.1;
+    .pretext-inline-controller-title {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .pretext-inline-controller-text {
+      margin: 0 0 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #475569;
+    }
+
+    .pretext-open-button,
+    .pretext-close-button {
+      border: 1px solid rgba(15, 23, 42, 0.18);
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: #111827;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+    }
+
+    .pretext-open-button:hover,
+    .pretext-close-button:hover {
+      background: #1f2937;
+    }
+
+    .pretext-page-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: none;
+      flex-direction: column;
+      background: #f8fafc;
+      color: #111827;
+      font-family: ${fontFamily};
+    }
+
+    .pretext-root.pretext-mode-on .pretext-page-overlay {
+      display: flex;
+    }
+
+    .pretext-overlay-bar {
+      height: 68px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 24px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      box-sizing: border-box;
+    }
+
+    .pretext-overlay-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pretext-overlay-title {
+      font-size: 16px;
       font-weight: 850;
-      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+      color: #111827;
     }
 
-    .pretext-static-figure-caption {
-      font-size: 13px;
-      line-height: 1.45;
-      opacity: 0.86;
+    .pretext-overlay-subtitle {
+      font-size: 12px;
+      color: #64748b;
     }
 
     .pretext-stage {
-      display: none;
       position: relative;
-      width: 100%;
-      height: ${height}px;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow: hidden;
-      border-radius: 22px;
-      border: 1px solid rgba(15, 23, 42, 0.14);
-      background: #f8fafc;
-      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.14);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32%),
+        #ffffff;
       user-select: none;
       touch-action: none;
-    }
-
-    .pretext-page-demo.pretext-mode-on .pretext-normal-article {
-      display: none;
-    }
-
-    .pretext-page-demo.pretext-mode-on .pretext-stage {
-      display: block;
     }
 
     .pretext-text-layer {
@@ -152,18 +157,21 @@ function render({ model, el }) {
       width: ${figureWidth}px;
       height: ${figureHeight}px;
       border: 0;
-      border-radius: 18px;
+      border-radius: 20px;
       cursor: grab;
       background: linear-gradient(135deg, #111827, #2563eb);
       color: white;
-      box-shadow: 0 22px 45px rgba(37, 99, 235, 0.28);
+      box-shadow:
+        0 24px 55px rgba(37, 99, 235, 0.30),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       justify-content: space-between;
-      padding: 18px;
+      padding: 20px;
       text-align: left;
       font-family: ${fontFamily};
+      box-sizing: border-box;
     }
 
     .pretext-figure:active {
@@ -175,56 +183,91 @@ function render({ model, el }) {
       letter-spacing: 0.12em;
       text-transform: uppercase;
       opacity: 0.72;
-      font-weight: 800;
+      font-weight: 850;
     }
 
     .pretext-title {
-      font-size: 24px;
+      font-size: 26px;
       line-height: 1.05;
-      font-weight: 850;
+      font-weight: 900;
+      letter-spacing: -0.03em;
     }
 
     .pretext-caption {
       font-size: 12px;
-      line-height: 1.35;
-      opacity: 0.82;
+      line-height: 1.4;
+      opacity: 0.84;
+    }
+
+    .pretext-footer-hint {
+      position: absolute;
+      left: 24px;
+      bottom: 18px;
+      z-index: 20;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.72);
+      color: white;
+      font-size: 12px;
+      pointer-events: none;
+      backdrop-filter: blur(10px);
     }
   `;
 
-  const wrapper = document.createElement("section");
-  wrapper.className = "pretext-page-demo pretext-mode-off";
+  const root = document.createElement("div");
+  root.className = "pretext-root";
 
-  const toolbar = document.createElement("div");
-  toolbar.className = "pretext-mode-toolbar";
+  const controller = document.createElement("section");
+  controller.className = "pretext-inline-controller";
 
-  const toggleButton = document.createElement("button");
-  toggleButton.className = "pretext-toggle";
-  toggleButton.type = "button";
+  const controllerTitle = document.createElement("p");
+  controllerTitle.className = "pretext-inline-controller-title";
+  controllerTitle.textContent = "Pretext Page-Level Mode";
 
-  toolbar.appendChild(toggleButton);
+  const controllerText = document.createElement("p");
+  controllerText.className = "pretext-inline-controller-text";
+  controllerText.textContent =
+    "Open Pretext Mode to switch from the normal MyST article into a page-level draggable figure-aware reading surface.";
 
-  const normalArticle = document.createElement("article");
-  normalArticle.className = "pretext-normal-article";
-  normalArticle.innerHTML = `
-    <h2>Normal MyST Reading Mode</h2>
+  const openButton = document.createElement("button");
+  openButton.className = "pretext-open-button";
+  openButton.type = "button";
+  openButton.textContent = "Open Pretext Mode";
 
-    <figure class="pretext-static-figure">
-      <div class="pretext-static-figure-title">${figureTitle}</div>
-      <figcaption class="pretext-static-figure-caption">
-        ${figureCaption}
-      </figcaption>
-    </figure>
+  controller.appendChild(controllerTitle);
+  controller.appendChild(controllerText);
+  controller.appendChild(openButton);
 
-    <p>
-      ${text}
-    </p>
+  const overlay = document.createElement("section");
+  overlay.className = "pretext-page-overlay";
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("role", "dialog");
 
-    <p>
-      This is the default reading mode. The figure behaves like a normal static figure.
-      Turn on Pretext mode to make the figure draggable and let the text dynamically
-      reflow around it.
-    </p>
-  `;
+  const overlayBar = document.createElement("header");
+  overlayBar.className = "pretext-overlay-bar";
+
+  const heading = document.createElement("div");
+  heading.className = "pretext-overlay-heading";
+
+  const overlayTitle = document.createElement("div");
+  overlayTitle.className = "pretext-overlay-title";
+  overlayTitle.textContent = "Pretext Mode: Page-Level Figure-Aware Layout";
+
+  const overlaySubtitle = document.createElement("div");
+  overlaySubtitle.className = "pretext-overlay-subtitle";
+  overlaySubtitle.textContent =
+    "Drag the figure. The text is recomputed around the figure as a layout obstacle.";
+
+  heading.appendChild(overlayTitle);
+  heading.appendChild(overlaySubtitle);
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "pretext-close-button";
+  closeButton.type = "button";
+  closeButton.textContent = "Exit Pretext Mode";
+
+  overlayBar.appendChild(heading);
+  overlayBar.appendChild(closeButton);
 
   const stage = document.createElement("div");
   stage.className = "pretext-stage";
@@ -235,51 +278,63 @@ function render({ model, el }) {
   const figure = document.createElement("button");
   figure.className = "pretext-figure";
   figure.type = "button";
-  figure.innerHTML = `
-    <div class="pretext-kicker">Draggable Artifact</div>
-    <div class="pretext-title">${figureTitle}</div>
-    <div class="pretext-caption">${figureCaption}</div>
-  `;
+
+  const kickerElement = document.createElement("div");
+  kickerElement.className = "pretext-kicker";
+  kickerElement.textContent = figureKicker;
+
+  const titleElement = document.createElement("div");
+  titleElement.className = "pretext-title";
+  titleElement.textContent = figureTitle;
+
+  const captionElement = document.createElement("div");
+  captionElement.className = "pretext-caption";
+  captionElement.textContent = figureCaption;
+
+  figure.appendChild(kickerElement);
+  figure.appendChild(titleElement);
+  figure.appendChild(captionElement);
+
+  const footerHint = document.createElement("div");
+  footerHint.className = "pretext-footer-hint";
+  footerHint.textContent = "Tip: press Esc to exit Pretext Mode.";
 
   stage.appendChild(textLayer);
   stage.appendChild(figure);
+  stage.appendChild(footerHint);
 
-  wrapper.appendChild(toolbar);
-  wrapper.appendChild(normalArticle);
-  wrapper.appendChild(stage);
+  overlay.appendChild(overlayBar);
+  overlay.appendChild(stage);
+
+  root.appendChild(controller);
+  root.appendChild(overlay);
 
   el.innerHTML = "";
   el.appendChild(style);
-  el.appendChild(wrapper);
+  el.appendChild(root);
 
   let pretextMode = false;
   let isDragging = false;
   let offsetX = 0;
   let offsetY = 0;
   let animationFrameId = null;
-
-  function updateMode() {
-    wrapper.classList.toggle("pretext-mode-on", pretextMode);
-    wrapper.classList.toggle("pretext-mode-off", !pretextMode);
-
-    document.body.classList.toggle("pretext-mode-on", pretextMode);
-    document.body.classList.toggle("pretext-mode-off", !pretextMode);
-
-    toggleButton.textContent = pretextMode
-      ? "Pretext Mode: On"
-      : "Pretext Mode: Off";
-
-    if (pretextMode) {
-      setFigurePosition();
-      renderText();
-    }
-  }
+  let previousBodyOverflow = "";
 
   function measureWord(word) {
+    ctx.font = `${fontSize}px ${fontFamily}`;
     return ctx.measureText(word).width;
   }
 
+  function clampFigurePosition() {
+    const maxX = Math.max(0, stage.clientWidth - figureWidth);
+    const maxY = Math.max(0, stage.clientHeight - figureHeight);
+
+    figureX = Math.max(0, Math.min(figureX, maxX));
+    figureY = Math.max(0, Math.min(figureY, maxY));
+  }
+
   function setFigurePosition() {
+    clampFigurePosition();
     figure.style.left = `${figureX}px`;
     figure.style.top = `${figureY}px`;
   }
@@ -314,7 +369,7 @@ function render({ model, el }) {
       segments.push([Math.max(obstacle.right, leftEdge), rightEdge]);
     }
 
-    return segments.filter(([start, end]) => end - start > 50);
+    return segments.filter(([start, end]) => end - start > 60);
   }
 
   function createWordElement(word, x, y) {
@@ -327,6 +382,13 @@ function render({ model, el }) {
   }
 
   function renderText() {
+    if (!pretextMode) return;
+
+    const stageWidth = stage.clientWidth;
+    const stageHeight = stage.clientHeight;
+
+    if (stageWidth <= 0 || stageHeight <= 0) return;
+
     textLayer.innerHTML = "";
 
     const obstacle = getFigureObstacle();
@@ -334,7 +396,7 @@ function render({ model, el }) {
     let wordIndex = 0;
     let y = padding;
 
-    while (wordIndex < words.length && y + lineHeight < height - padding) {
+    while (wordIndex < words.length && y + lineHeight < stageHeight - padding) {
       const lineCenterY = y + lineHeight / 2;
       const segments = getAvailableSegmentsForLine(lineCenterY, obstacle);
 
@@ -371,6 +433,28 @@ function render({ model, el }) {
     });
   }
 
+  function openPretextMode() {
+    pretextMode = true;
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    root.classList.add("pretext-mode-on");
+
+    requestAnimationFrame(() => {
+      setFigurePosition();
+      renderText();
+      closeButton.focus();
+    });
+  }
+
+  function closePretextMode() {
+    pretextMode = false;
+    isDragging = false;
+    root.classList.remove("pretext-mode-on");
+    document.body.style.overflow = previousBodyOverflow;
+    textLayer.innerHTML = "";
+    openButton.focus();
+  }
+
   function handlePointerDown(event) {
     if (!pretextMode) return;
 
@@ -389,11 +473,11 @@ function render({ model, el }) {
 
     const stageRect = stage.getBoundingClientRect();
 
-    let nextX = event.clientX - stageRect.left - offsetX;
-    let nextY = event.clientY - stageRect.top - offsetY;
+    const nextX = event.clientX - stageRect.left - offsetX;
+    const nextY = event.clientY - stageRect.top - offsetY;
 
-    const maxX = stage.clientWidth - figureWidth;
-    const maxY = height - figureHeight;
+    const maxX = Math.max(0, stage.clientWidth - figureWidth);
+    const maxY = Math.max(0, stage.clientHeight - figureHeight);
 
     figureX = Math.max(0, Math.min(nextX, maxX));
     figureY = Math.max(0, Math.min(nextY, maxY));
@@ -405,15 +489,21 @@ function render({ model, el }) {
     isDragging = false;
   }
 
-  toggleButton.addEventListener("click", () => {
-    pretextMode = !pretextMode;
-    updateMode();
-  });
+  function handleKeyDown(event) {
+    if (event.key === "Escape" && pretextMode) {
+      closePretextMode();
+    }
+  }
+
+  openButton.addEventListener("click", openPretextMode);
+  closeButton.addEventListener("click", closePretextMode);
 
   figure.addEventListener("pointerdown", handlePointerDown);
   figure.addEventListener("pointermove", handlePointerMove);
   figure.addEventListener("pointerup", handlePointerUp);
   figure.addEventListener("pointercancel", handlePointerUp);
+
+  window.addEventListener("keydown", handleKeyDown);
 
   const resizeObserver = new ResizeObserver(() => {
     rerenderSoon();
@@ -421,19 +511,21 @@ function render({ model, el }) {
 
   resizeObserver.observe(stage);
 
-  updateMode();
-
   return () => {
     resizeObserver.disconnect();
 
-    toggleButton.removeEventListener("click", updateMode);
+    openButton.removeEventListener("click", openPretextMode);
+    closeButton.removeEventListener("click", closePretextMode);
+
     figure.removeEventListener("pointerdown", handlePointerDown);
     figure.removeEventListener("pointermove", handlePointerMove);
     figure.removeEventListener("pointerup", handlePointerUp);
     figure.removeEventListener("pointercancel", handlePointerUp);
 
-    document.body.classList.remove("pretext-mode-on");
-    document.body.classList.remove("pretext-mode-off");
+    window.removeEventListener("keydown", handleKeyDown);
+
+    root.classList.remove("pretext-mode-on");
+    document.body.style.overflow = previousBodyOverflow;
   };
 }
 
