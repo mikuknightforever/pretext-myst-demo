@@ -1,24 +1,19 @@
 function render({ model, el }) {
   const text =
     model.get("text") ||
-    "This page demonstrates a Pretext-style reading mode for dynamic papers. In normal mode, the article behaves like a regular MyST page with static prose and a static figure. When Pretext mode is enabled, the figure becomes draggable and the text reflows around it. This is a prototype for page-level figure-aware layout rather than a small isolated animation.";
+    "Drag the figure and the text will reflow around it.";
 
-  const height = model.get("height") || 620;
-  const figureWidth = model.get("figureWidth") || 240;
-  const figureHeight = model.get("figureHeight") || 150;
+  const height = model.get("height") || 560;
+  const figureWidth = model.get("figureWidth") || 220;
+  const figureHeight = model.get("figureHeight") || 140;
 
-  let figureX = model.get("initialX") || 360;
-  let figureY = model.get("initialY") || 220;
+  let figureX = model.get("initialX") || 320;
+  let figureY = model.get("initialY") || 180;
 
-  const figureTitle = model.get("figureTitle") || "Interactive Figure";
-  const figureCaption =
-    model.get("figureCaption") ||
-    "Drag this figure in Pretext mode. The article text will wrap around it.";
-
-  const padding = 34;
+  const padding = 32;
   const lineHeight = 30;
   const wordGap = 6;
-  const obstacleGap = 18;
+  const obstacleGap = 16;
   const fontSize = 18;
   const fontFamily =
     'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -31,87 +26,7 @@ function render({ model, el }) {
 
   const style = document.createElement("style");
   style.textContent = `
-    .pretext-page-demo {
-      width: 100%;
-      margin: 1.5rem 0 2rem;
-      font-family: ${fontFamily};
-    }
-
-    .pretext-mode-toolbar {
-      position: sticky;
-      top: 12px;
-      z-index: 50;
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-      pointer-events: none;
-    }
-
-    .pretext-toggle {
-      pointer-events: auto;
-      border: 1px solid rgba(15, 23, 42, 0.16);
-      border-radius: 999px;
-      padding: 9px 16px;
-      background: #ffffff;
-      color: #111827;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16);
-      cursor: pointer;
-      font-weight: 750;
-      font-size: 14px;
-    }
-
-    .pretext-toggle:hover {
-      background: #f8fafc;
-    }
-
-    .pretext-normal-article {
-      border: 1px solid rgba(15, 23, 42, 0.12);
-      border-radius: 22px;
-      background: #ffffff;
-      padding: 28px;
-      color: #111827;
-      box-shadow: 0 18px 55px rgba(15, 23, 42, 0.10);
-    }
-
-    .pretext-normal-article h2 {
-      margin-top: 0;
-      font-size: 26px;
-      line-height: 1.2;
-    }
-
-    .pretext-normal-article p {
-      font-size: 18px;
-      line-height: 1.75;
-      margin: 0 0 1rem;
-    }
-
-    .pretext-static-figure {
-      float: right;
-      width: ${figureWidth}px;
-      min-height: ${figureHeight}px;
-      margin: 0 0 18px 24px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #111827, #2563eb);
-      color: white;
-      padding: 18px;
-      box-shadow: 0 18px 38px rgba(37, 99, 235, 0.22);
-    }
-
-    .pretext-static-figure-title {
-      font-size: 24px;
-      line-height: 1.1;
-      font-weight: 850;
-      margin-bottom: 14px;
-    }
-
-    .pretext-static-figure-caption {
-      font-size: 13px;
-      line-height: 1.45;
-      opacity: 0.86;
-    }
-
     .pretext-stage {
-      display: none;
       position: relative;
       width: 100%;
       height: ${height}px;
@@ -122,14 +37,7 @@ function render({ model, el }) {
       box-shadow: 0 20px 60px rgba(15, 23, 42, 0.14);
       user-select: none;
       touch-action: none;
-    }
-
-    .pretext-page-demo.pretext-mode-on .pretext-normal-article {
-      display: none;
-    }
-
-    .pretext-page-demo.pretext-mode-on .pretext-stage {
-      display: block;
+      margin: 1.5rem 0;
     }
 
     .pretext-text-layer {
@@ -191,41 +99,6 @@ function render({ model, el }) {
     }
   `;
 
-  const wrapper = document.createElement("section");
-  wrapper.className = "pretext-page-demo pretext-mode-off";
-
-  const toolbar = document.createElement("div");
-  toolbar.className = "pretext-mode-toolbar";
-
-  const toggleButton = document.createElement("button");
-  toggleButton.className = "pretext-toggle";
-  toggleButton.type = "button";
-
-  toolbar.appendChild(toggleButton);
-
-  const normalArticle = document.createElement("article");
-  normalArticle.className = "pretext-normal-article";
-  normalArticle.innerHTML = `
-    <h2>Normal MyST Reading Mode</h2>
-
-    <figure class="pretext-static-figure">
-      <div class="pretext-static-figure-title">${figureTitle}</div>
-      <figcaption class="pretext-static-figure-caption">
-        ${figureCaption}
-      </figcaption>
-    </figure>
-
-    <p>
-      ${text}
-    </p>
-
-    <p>
-      This is the default reading mode. The figure behaves like a normal static figure.
-      Turn on Pretext mode to make the figure draggable and let the text dynamically
-      reflow around it.
-    </p>
-  `;
-
   const stage = document.createElement("div");
   stage.className = "pretext-stage";
 
@@ -235,45 +108,24 @@ function render({ model, el }) {
   const figure = document.createElement("button");
   figure.className = "pretext-figure";
   figure.type = "button";
+
   figure.innerHTML = `
-    <div class="pretext-kicker">Draggable Artifact</div>
-    <div class="pretext-title">${figureTitle}</div>
-    <div class="pretext-caption">${figureCaption}</div>
+    <div class="pretext-kicker">Interactive Artifact</div>
+    <div class="pretext-title">KAN<br/>Figure</div>
+    <div class="pretext-caption">Drag me. The article text will wrap around this block.</div>
   `;
 
   stage.appendChild(textLayer);
   stage.appendChild(figure);
 
-  wrapper.appendChild(toolbar);
-  wrapper.appendChild(normalArticle);
-  wrapper.appendChild(stage);
-
   el.innerHTML = "";
   el.appendChild(style);
-  el.appendChild(wrapper);
+  el.appendChild(stage);
 
-  let pretextMode = false;
   let isDragging = false;
   let offsetX = 0;
   let offsetY = 0;
   let animationFrameId = null;
-
-  function updateMode() {
-    wrapper.classList.toggle("pretext-mode-on", pretextMode);
-    wrapper.classList.toggle("pretext-mode-off", !pretextMode);
-
-    document.body.classList.toggle("pretext-mode-on", pretextMode);
-    document.body.classList.toggle("pretext-mode-off", !pretextMode);
-
-    toggleButton.textContent = pretextMode
-      ? "Pretext Mode: On"
-      : "Pretext Mode: Off";
-
-    if (pretextMode) {
-      setFigurePosition();
-      renderText();
-    }
-  }
 
   function measureWord(word) {
     return ctx.measureText(word).width;
@@ -361,7 +213,6 @@ function render({ model, el }) {
   }
 
   function rerenderSoon() {
-    if (!pretextMode) return;
     if (animationFrameId) return;
 
     animationFrameId = requestAnimationFrame(() => {
@@ -372,8 +223,6 @@ function render({ model, el }) {
   }
 
   function handlePointerDown(event) {
-    if (!pretextMode) return;
-
     isDragging = true;
 
     const figureRect = figure.getBoundingClientRect();
@@ -385,7 +234,7 @@ function render({ model, el }) {
   }
 
   function handlePointerMove(event) {
-    if (!isDragging || !pretextMode) return;
+    if (!isDragging) return;
 
     const stageRect = stage.getBoundingClientRect();
 
@@ -405,11 +254,6 @@ function render({ model, el }) {
     isDragging = false;
   }
 
-  toggleButton.addEventListener("click", () => {
-    pretextMode = !pretextMode;
-    updateMode();
-  });
-
   figure.addEventListener("pointerdown", handlePointerDown);
   figure.addEventListener("pointermove", handlePointerMove);
   figure.addEventListener("pointerup", handlePointerUp);
@@ -421,19 +265,15 @@ function render({ model, el }) {
 
   resizeObserver.observe(stage);
 
-  updateMode();
+  setFigurePosition();
+  renderText();
 
   return () => {
     resizeObserver.disconnect();
-
-    toggleButton.removeEventListener("click", updateMode);
     figure.removeEventListener("pointerdown", handlePointerDown);
     figure.removeEventListener("pointermove", handlePointerMove);
     figure.removeEventListener("pointerup", handlePointerUp);
     figure.removeEventListener("pointercancel", handlePointerUp);
-
-    document.body.classList.remove("pretext-mode-on");
-    document.body.classList.remove("pretext-mode-off");
   };
 }
 
