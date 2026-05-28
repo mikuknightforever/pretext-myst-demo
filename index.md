@@ -10,12 +10,12 @@ This approach is still a prototype. It does not directly reflow the original MyS
   class="pretext-draggable"
   data-pretext-kicker="Native Article Figure"
   data-pretext-title="Draggable Figure"
-  style="margin: 1.5rem 0; padding: 1rem; border: 1px solid #cbd5e1; border-radius: 16px; background: #f8fafc;"
+  style="width: 360px !important; max-width: 45% !important; float: right !important; clear: none !important; margin: 0.5rem 0 1rem 1.5rem !important; padding: 1rem !important; border: 1px solid #cbd5e1 !important; border-radius: 16px !important; background: #f8fafc !important; box-sizing: border-box !important;"
 >
-  <div style="height: 170px; border-radius: 14px; background: linear-gradient(135deg, #111827, #2563eb); color: white; display: grid; place-items: center; font-weight: 800; font-size: 24px;">
+  <div style="height: 170px !important; width: 100% !important; border-radius: 14px !important; background: linear-gradient(135deg, #111827, #2563eb); color: white; display: grid; place-items: center; font-weight: 800; font-size: 24px; box-sizing: border-box;">
     Native MyST Figure
   </div>
-  <figcaption>
+  <figcaption style="margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.45;">
     This figure is part of the normal MyST article. It is marked with <code>class="pretext-draggable"</code>, so the Pretext widget can find it and convert it into a draggable layout obstacle.
   </figcaption>
 </figure>
