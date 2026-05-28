@@ -1,33 +1,12 @@
 function render({ model, el }) {
-  const text =
-    model.get("text") ||
-    "This page demonstrates a Pretext-style reading mode for dynamic papers. In normal mode, the article behaves like a regular MyST page. When Pretext Mode is enabled, the page switches into an interactive reading surface where the figure becomes draggable and the surrounding text dynamically reflows around it. This prototype moves beyond a small localized animation and tests a broader page-level interaction model.";
+  const draggableSelector =
+    model.get("draggableSelector") || ".pretext-draggable";
 
-  const figureWidth = model.get("figureWidth") || 250;
-  const figureHeight = model.get("figureHeight") || 160;
+  const articleSelector =
+    model.get("articleSelector") || "article, main";
 
-  let figureX = model.get("initialX") || 420;
-  let figureY = model.get("initialY") || 220;
-
-  const figureKicker = model.get("figureKicker") || "Draggable Artifact";
-  const figureTitle = model.get("figureTitle") || "Interactive Figure";
-  const figureCaption =
-    model.get("figureCaption") ||
-    "Drag this figure in Pretext Mode. The text will dynamically wrap around it.";
-
-  const padding = 42;
-  const lineHeight = 32;
-  const wordGap = 6;
-  const obstacleGap = 20;
-  const fontSize = 19;
   const fontFamily =
     'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
-  const words = text.trim().replace(/\s+/g, " ").split(" ");
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  ctx.font = `${fontSize}px ${fontFamily}`;
 
   const style = document.createElement("style");
   style.textContent = `
@@ -39,8 +18,8 @@ function render({ model, el }) {
       margin: 1.5rem 0;
       padding: 18px 20px;
       border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.14);
-      background: #f8fafc;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(248, 250, 252, 0.92);
       color: #111827;
       font-family: ${fontFamily};
       box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
@@ -84,8 +63,8 @@ function render({ model, el }) {
       z-index: 2147483647;
       display: none;
       flex-direction: column;
-      background: #f8fafc;
-      color: #111827;
+      background: Canvas;
+      color: CanvasText;
       font-family: ${fontFamily};
     }
 
@@ -101,10 +80,16 @@ function render({ model, el }) {
       justify-content: space-between;
       gap: 16px;
       padding: 0 24px;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.12);
-      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(14px);
       box-sizing: border-box;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .pretext-overlay-bar {
+        background: rgba(15, 23, 42, 0.88);
+      }
     }
 
     .pretext-overlay-heading {
@@ -117,7 +102,6 @@ function render({ model, el }) {
       font-size: 16px;
       font-weight: 850;
       letter-spacing: -0.01em;
-      color: #111827;
     }
 
     .pretext-overlay-subtitle {
@@ -125,88 +109,65 @@ function render({ model, el }) {
       color: #64748b;
     }
 
-    .pretext-stage {
+    .pretext-snapshot-scroll {
       position: relative;
       flex: 1 1 auto;
       min-height: 0;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32%),
-        #ffffff;
-      user-select: none;
-      touch-action: none;
+      overflow: auto;
+      background: Canvas;
+      color: CanvasText;
     }
 
-    .pretext-text-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    .pretext-word {
-      position: absolute;
-      white-space: nowrap;
-      font-size: ${fontSize}px;
-      line-height: ${lineHeight}px;
-      color: #111827;
-    }
-
-    .pretext-figure {
-      position: absolute;
-      z-index: 10;
-      width: ${figureWidth}px;
-      height: ${figureHeight}px;
-      border: 0;
-      border-radius: 20px;
-      cursor: grab;
-      background: linear-gradient(135deg, #111827, #2563eb);
-      color: white;
-      box-shadow:
-        0 24px 55px rgba(37, 99, 235, 0.30),
-        inset 0 1px 0 rgba(255, 255, 255, 0.18);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 20px;
-      text-align: left;
-      font-family: ${fontFamily};
+    .pretext-snapshot-shell {
+      position: relative;
+      padding-top: 36px;
+      padding-bottom: 96px;
       box-sizing: border-box;
     }
 
-    .pretext-figure:active {
-      cursor: grabbing;
+    .pretext-snapshot-shell article,
+    .pretext-snapshot-shell main {
+      width: 100%;
+      max-width: none;
+      margin: 0;
     }
 
-    .pretext-kicker {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      opacity: 0.72;
-      font-weight: 850;
+    .pretext-snapshot-shell .pretext-root,
+    .pretext-snapshot-shell .pretext-inline-controller,
+    .pretext-snapshot-shell .pretext-page-overlay {
+      display: none !important;
     }
 
-    .pretext-title {
-      font-size: 26px;
-      line-height: 1.05;
-      font-weight: 900;
-      letter-spacing: -0.03em;
+    .pretext-active-draggable {
+      cursor: grab !important;
+      touch-action: none;
+      user-select: none;
+      will-change: transform;
+      outline: 2px solid rgba(37, 99, 235, 0.35);
+      outline-offset: 4px;
+      transition: outline-color 120ms ease, box-shadow 120ms ease;
     }
 
-    .pretext-caption {
-      font-size: 12px;
-      line-height: 1.4;
-      opacity: 0.84;
+    .pretext-active-draggable:hover {
+      outline-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 18px 42px rgba(37, 99, 235, 0.18);
+    }
+
+    .pretext-active-draggable.is-dragging {
+      cursor: grabbing !important;
+      z-index: 20;
+      outline-color: rgba(37, 99, 235, 0.95);
+      box-shadow: 0 24px 60px rgba(37, 99, 235, 0.28);
     }
 
     .pretext-footer-hint {
-      position: absolute;
+      position: fixed;
       left: 24px;
       bottom: 18px;
-      z-index: 20;
+      z-index: 2147483647;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.72);
+      background: rgba(15, 23, 42, 0.78);
       color: white;
       font-size: 12px;
       pointer-events: none;
@@ -222,17 +183,17 @@ function render({ model, el }) {
 
   const controllerTitle = document.createElement("p");
   controllerTitle.className = "pretext-inline-controller-title";
-  controllerTitle.textContent = "Pretext Page-Level Mode";
+  controllerTitle.textContent = "Native Layout Snapshot Pretext Mode";
 
   const controllerText = document.createElement("p");
   controllerText.className = "pretext-inline-controller-text";
   controllerText.textContent =
-    "Open Pretext Mode to switch from the normal MyST article into a page-level draggable figure-aware reading surface.";
+    "Open Pretext Mode to clone the native MyST article layout. The marked figure remains visually in place and becomes draggable. Dynamic text reflow will be added in the next stage.";
 
   const openButton = document.createElement("button");
   openButton.className = "pretext-open-button";
   openButton.type = "button";
-  openButton.textContent = "Open Pretext Mode";
+  openButton.textContent = "Open Native Layout Snapshot";
 
   controller.appendChild(controllerTitle);
   controller.appendChild(controllerText);
@@ -251,12 +212,12 @@ function render({ model, el }) {
 
   const overlayTitle = document.createElement("div");
   overlayTitle.className = "pretext-overlay-title";
-  overlayTitle.textContent = "Pretext Mode: Page-Level Figure-Aware Layout";
+  overlayTitle.textContent = "Pretext Mode: Native Layout Snapshot";
 
   const overlaySubtitle = document.createElement("div");
   overlaySubtitle.className = "pretext-overlay-subtitle";
   overlaySubtitle.textContent =
-    "Drag the figure. The text is recomputed around the figure as a layout obstacle.";
+    "This mode clones the rendered MyST article and makes marked figures draggable without changing the initial layout.";
 
   heading.appendChild(overlayTitle);
   heading.appendChild(overlaySubtitle);
@@ -269,42 +230,22 @@ function render({ model, el }) {
   overlayBar.appendChild(heading);
   overlayBar.appendChild(closeButton);
 
-  const stage = document.createElement("div");
-  stage.className = "pretext-stage";
+  const snapshotScroll = document.createElement("div");
+  snapshotScroll.className = "pretext-snapshot-scroll";
 
-  const textLayer = document.createElement("div");
-  textLayer.className = "pretext-text-layer";
+  const snapshotShell = document.createElement("div");
+  snapshotShell.className = "pretext-snapshot-shell";
 
-  const figure = document.createElement("button");
-  figure.className = "pretext-figure";
-  figure.type = "button";
-
-  const kickerElement = document.createElement("div");
-  kickerElement.className = "pretext-kicker";
-  kickerElement.textContent = figureKicker;
-
-  const titleElement = document.createElement("div");
-  titleElement.className = "pretext-title";
-  titleElement.textContent = figureTitle;
-
-  const captionElement = document.createElement("div");
-  captionElement.className = "pretext-caption";
-  captionElement.textContent = figureCaption;
-
-  figure.appendChild(kickerElement);
-  figure.appendChild(titleElement);
-  figure.appendChild(captionElement);
+  snapshotScroll.appendChild(snapshotShell);
 
   const footerHint = document.createElement("div");
   footerHint.className = "pretext-footer-hint";
-  footerHint.textContent = "Tip: press Esc to exit Pretext Mode.";
-
-  stage.appendChild(textLayer);
-  stage.appendChild(figure);
-  stage.appendChild(footerHint);
+  footerHint.textContent =
+    "A-stage prototype: native layout snapshot + draggable figure. Press Esc to exit.";
 
   overlay.appendChild(overlayBar);
-  overlay.appendChild(stage);
+  overlay.appendChild(snapshotScroll);
+  overlay.appendChild(footerHint);
 
   root.appendChild(controller);
   root.appendChild(overlay);
@@ -314,122 +255,138 @@ function render({ model, el }) {
   el.appendChild(root);
 
   let pretextMode = false;
-  let isDragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
-  let animationFrameId = null;
   let previousBodyOverflow = "";
+  let cleanupDragHandlers = [];
 
-  function measureWord(word) {
-    ctx.font = `${fontSize}px ${fontFamily}`;
-    return ctx.measureText(word).width;
+  function clampNumber(value, min, max) {
+    return Math.max(min, Math.min(value, max));
   }
 
-  function clampFigurePosition() {
-    const maxX = Math.max(0, stage.clientWidth - figureWidth);
-    const maxY = Math.max(0, stage.clientHeight - figureHeight);
-
-    figureX = Math.max(0, Math.min(figureX, maxX));
-    figureY = Math.max(0, Math.min(figureY, maxY));
+  function getArticleRoot() {
+    return (
+      el.closest("article") ||
+      document.querySelector(articleSelector) ||
+      document.querySelector("main") ||
+      document.body
+    );
   }
 
-  function setFigurePosition() {
-    clampFigurePosition();
-    figure.style.left = `${figureX}px`;
-    figure.style.top = `${figureY}px`;
+  function removeDuplicateIds(container) {
+    container.querySelectorAll("[id]").forEach((node) => {
+      node.removeAttribute("id");
+    });
   }
 
-  function getFigureObstacle() {
+  function removeWidgetArtifacts(container) {
+    container.querySelectorAll(".pretext-root").forEach((node) => {
+      node.remove();
+    });
+
+    container.querySelectorAll("script").forEach((node) => {
+      node.remove();
+    });
+  }
+
+  function cloneNativeArticle() {
+    const articleRoot = getArticleRoot();
+    const articleRect = articleRoot.getBoundingClientRect();
+
+    const clone = articleRoot.cloneNode(true);
+
+    removeDuplicateIds(clone);
+    removeWidgetArtifacts(clone);
+
     return {
-      left: figureX - obstacleGap,
-      right: figureX + figureWidth + obstacleGap,
-      top: figureY - obstacleGap,
-      bottom: figureY + figureHeight + obstacleGap
+      clone,
+      articleRect
     };
   }
 
-  function getAvailableSegmentsForLine(lineCenterY, obstacle) {
-    const leftEdge = padding;
-    const rightEdge = stage.clientWidth - padding;
+  function applySnapshotColumn(articleRect) {
+    const viewportWidth = window.innerWidth;
+    const maxAvailableWidth = Math.max(360, viewportWidth - 48);
 
-    const lineHitsFigure =
-      lineCenterY >= obstacle.top && lineCenterY <= obstacle.bottom;
+    const width = clampNumber(
+      articleRect.width || 760,
+      360,
+      maxAvailableWidth
+    );
 
-    if (!lineHitsFigure) {
-      return [[leftEdge, rightEdge]];
-    }
+    const left = clampNumber(
+      articleRect.left || 24,
+      24,
+      Math.max(24, viewportWidth - width - 24)
+    );
 
-    const segments = [];
-
-    if (obstacle.left > leftEdge) {
-      segments.push([leftEdge, Math.min(obstacle.left, rightEdge)]);
-    }
-
-    if (obstacle.right < rightEdge) {
-      segments.push([Math.max(obstacle.right, leftEdge), rightEdge]);
-    }
-
-    return segments.filter(([start, end]) => end - start > 60);
+    snapshotShell.style.width = `${width}px`;
+    snapshotShell.style.marginLeft = `${left}px`;
+    snapshotShell.style.marginRight = "24px";
   }
 
-  function createWordElement(word, x, y) {
-    const span = document.createElement("span");
-    span.className = "pretext-word";
-    span.textContent = word;
-    span.style.left = `${x}px`;
-    span.style.top = `${y}px`;
-    return span;
+  function resetSnapshot() {
+    cleanupDragHandlers.forEach((cleanup) => cleanup());
+    cleanupDragHandlers = [];
+    snapshotShell.innerHTML = "";
   }
 
-  function renderText() {
-    if (!pretextMode) return;
+  function setupDraggableFigures() {
+    const draggableFigures = Array.from(
+      snapshotShell.querySelectorAll(draggableSelector)
+    );
 
-    const stageWidth = stage.clientWidth;
-    const stageHeight = stage.clientHeight;
+    draggableFigures.forEach((figure) => {
+      figure.classList.add("pretext-active-draggable");
 
-    if (stageWidth <= 0 || stageHeight <= 0) return;
+      let isDragging = false;
+      let startClientX = 0;
+      let startClientY = 0;
+      let startTranslateX = 0;
+      let startTranslateY = 0;
+      let translateX = 0;
+      let translateY = 0;
 
-    textLayer.innerHTML = "";
-
-    const obstacle = getFigureObstacle();
-
-    let wordIndex = 0;
-    let y = padding;
-
-    while (wordIndex < words.length && y + lineHeight < stageHeight - padding) {
-      const lineCenterY = y + lineHeight / 2;
-      const segments = getAvailableSegmentsForLine(lineCenterY, obstacle);
-
-      for (const [segmentStart, segmentEnd] of segments) {
-        let x = segmentStart;
-
-        while (wordIndex < words.length) {
-          const word = words[wordIndex];
-          const wordWidth = measureWord(word);
-
-          if (x + wordWidth > segmentEnd) {
-            break;
-          }
-
-          textLayer.appendChild(createWordElement(word, x, y));
-
-          x += wordWidth + wordGap;
-          wordIndex += 1;
-        }
+      function applyTransform() {
+        figure.style.transform = `translate(${translateX}px, ${translateY}px)`;
       }
 
-      y += lineHeight;
-    }
-  }
+      function handlePointerDown(event) {
+        isDragging = true;
+        startClientX = event.clientX;
+        startClientY = event.clientY;
+        startTranslateX = translateX;
+        startTranslateY = translateY;
 
-  function rerenderSoon() {
-    if (!pretextMode) return;
-    if (animationFrameId) return;
+        figure.classList.add("is-dragging");
+        figure.setPointerCapture(event.pointerId);
 
-    animationFrameId = requestAnimationFrame(() => {
-      setFigurePosition();
-      renderText();
-      animationFrameId = null;
+        event.preventDefault();
+      }
+
+      function handlePointerMove(event) {
+        if (!isDragging) return;
+
+        translateX = startTranslateX + event.clientX - startClientX;
+        translateY = startTranslateY + event.clientY - startClientY;
+
+        applyTransform();
+      }
+
+      function handlePointerUp() {
+        isDragging = false;
+        figure.classList.remove("is-dragging");
+      }
+
+      figure.addEventListener("pointerdown", handlePointerDown);
+      figure.addEventListener("pointermove", handlePointerMove);
+      figure.addEventListener("pointerup", handlePointerUp);
+      figure.addEventListener("pointercancel", handlePointerUp);
+
+      cleanupDragHandlers.push(() => {
+        figure.removeEventListener("pointerdown", handlePointerDown);
+        figure.removeEventListener("pointermove", handlePointerMove);
+        figure.removeEventListener("pointerup", handlePointerUp);
+        figure.removeEventListener("pointercancel", handlePointerUp);
+      });
     });
   }
 
@@ -437,56 +394,28 @@ function render({ model, el }) {
     pretextMode = true;
     previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    resetSnapshot();
+
+    const { clone, articleRect } = cloneNativeArticle();
+
+    applySnapshotColumn(articleRect);
+    snapshotShell.appendChild(clone);
+    setupDraggableFigures();
+
     root.classList.add("pretext-mode-on");
 
     requestAnimationFrame(() => {
-      setFigurePosition();
-      renderText();
       closeButton.focus();
     });
   }
 
   function closePretextMode() {
     pretextMode = false;
-    isDragging = false;
     root.classList.remove("pretext-mode-on");
     document.body.style.overflow = previousBodyOverflow;
-    textLayer.innerHTML = "";
+    resetSnapshot();
     openButton.focus();
-  }
-
-  function handlePointerDown(event) {
-    if (!pretextMode) return;
-
-    isDragging = true;
-
-    const figureRect = figure.getBoundingClientRect();
-
-    offsetX = event.clientX - figureRect.left;
-    offsetY = event.clientY - figureRect.top;
-
-    figure.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event) {
-    if (!isDragging || !pretextMode) return;
-
-    const stageRect = stage.getBoundingClientRect();
-
-    const nextX = event.clientX - stageRect.left - offsetX;
-    const nextY = event.clientY - stageRect.top - offsetY;
-
-    const maxX = Math.max(0, stage.clientWidth - figureWidth);
-    const maxY = Math.max(0, stage.clientHeight - figureHeight);
-
-    figureX = Math.max(0, Math.min(nextX, maxX));
-    figureY = Math.max(0, Math.min(nextY, maxY));
-
-    rerenderSoon();
-  }
-
-  function handlePointerUp() {
-    isDragging = false;
   }
 
   function handleKeyDown(event) {
@@ -497,35 +426,16 @@ function render({ model, el }) {
 
   openButton.addEventListener("click", openPretextMode);
   closeButton.addEventListener("click", closePretextMode);
-
-  figure.addEventListener("pointerdown", handlePointerDown);
-  figure.addEventListener("pointermove", handlePointerMove);
-  figure.addEventListener("pointerup", handlePointerUp);
-  figure.addEventListener("pointercancel", handlePointerUp);
-
   window.addEventListener("keydown", handleKeyDown);
 
-  const resizeObserver = new ResizeObserver(() => {
-    rerenderSoon();
-  });
-
-  resizeObserver.observe(stage);
-
   return () => {
-    resizeObserver.disconnect();
-
     openButton.removeEventListener("click", openPretextMode);
     closeButton.removeEventListener("click", closePretextMode);
-
-    figure.removeEventListener("pointerdown", handlePointerDown);
-    figure.removeEventListener("pointermove", handlePointerMove);
-    figure.removeEventListener("pointerup", handlePointerUp);
-    figure.removeEventListener("pointercancel", handlePointerUp);
-
     window.removeEventListener("keydown", handleKeyDown);
 
     root.classList.remove("pretext-mode-on");
     document.body.style.overflow = previousBodyOverflow;
+    resetSnapshot();
   };
 }
 

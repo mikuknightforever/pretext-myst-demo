@@ -1,17 +1,33 @@
-# Dynamic Paper Pretext Demo
+# Native MyST Article Pretext Demo
 
-This page demonstrates a prototype for page-level Pretext-style interaction in MyST.
+This page is written as a normal MyST article first. The Pretext widget below does not receive the article text manually. Instead, it scans the already-rendered article paragraphs and uses them as the source text for the interactive Pretext reading mode.
 
-The goal is to move beyond a small localized animated region and test a broader reading mode. In the normal MyST page, the article behaves like a regular document. When Pretext Mode is enabled, the page switches into an interactive reading surface where a figure can be dragged and the surrounding text dynamically reflows around it.
+The goal of this version is to move closer to native MyST article integration. The normal page remains readable as a regular document. When Pretext Mode is opened, the widget extracts the article prose and the marked figure, then generates a page-level draggable figure-aware layout.
+
+This approach is still a prototype. It does not directly reflow the original MyST DOM in place yet. However, it does use the native MyST article as the source of truth, which is a step beyond the earlier version where text was passed manually through the widget JSON.
+
+<figure
+  class="pretext-draggable"
+  data-pretext-kicker="Native Article Figure"
+  data-pretext-title="Draggable Figure"
+  style="margin: 1.5rem 0; padding: 1rem; border: 1px solid #cbd5e1; border-radius: 16px; background: #f8fafc;"
+>
+  <div style="height: 170px; border-radius: 14px; background: linear-gradient(135deg, #111827, #2563eb); color: white; display: grid; place-items: center; font-weight: 800; font-size: 24px;">
+    Native MyST Figure
+  </div>
+  <figcaption>
+    This figure is part of the normal MyST article. It is marked with <code>class="pretext-draggable"</code>, so the Pretext widget can find it and convert it into a draggable layout obstacle.
+  </figcaption>
+</figure>
+
+The figure above is not inside the widget. It is ordinary article content rendered by MyST. The widget is placed after the article content and scans the page when the user opens Pretext Mode.
+
+In the long term, this direction could become closer to a real article-level reading mode: selected figures, images, model outputs, or notebook artifacts could become movable objects, while the prose responds to those objects dynamically.
 
 ```{anywidget} ./pretext-widget.mjs
 {
-  "text": "This prototype demonstrates a page-level Pretext-style reading mode for dynamic papers. A normal article layout is useful for stable reading, but dynamic papers may need a second mode where figures, images, model artifacts, and visual evidence can be rearranged interactively. In this mode, the figure becomes a draggable object. The text is measured, placed line by line, and recomputed around the figure as a rectangular layout obstacle. This is not a final document engine, but it shows how a MyST page could support a broader Pretext interaction mode controlled by an on-off toggle similar to a dark or light mode switch. The long-term goal is to connect this behavior to real figures and article content instead of only rendering a local animated region.",
-  "figureKicker": "Page-Level Object",
-  "figureTitle": "Interactive Figure",
-  "figureCaption": "Drag this figure. The page-level text layout will reflow around it.",
-  "figureWidth": 260,
-  "figureHeight": 165,
+  "figureWidth": 270,
+  "figureHeight": 185,
   "initialX": 430,
   "initialY": 230
 }
@@ -19,6 +35,15 @@ The goal is to move beyond a small localized animated region and test a broader 
 
 ## Prototype status
 
-This version uses a page-level overlay for Pretext Mode. It is a step toward article-level integration, but it does not yet reflow the native MyST article DOM directly.
+This version uses native MyST article content as the source for the Pretext layout.
 
-Next steps include supporting real images, multiple draggable figures, and deeper integration with MyST article content.
+Current behavior:
+
+- The article is written normally in MyST.
+- A normal article figure is marked with `class="pretext-draggable"`.
+- The widget scans the rendered article DOM.
+- Paragraph text is extracted from native article paragraphs.
+- The marked figure is extracted and represented as a draggable object.
+- The Pretext view is still rendered as an overlay prototype.
+
+Next steps include reflowing richer MyST content, supporting multiple figures, and exploring deeper integration with the MyST article theme.
